@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>SOS Água: Caça ao Vazamento</title>
+    <style>
+        /* Reutilizando o tema do simulador */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+        :root {
+            --accent: #2b7cff;
+            --accent-dark: #1f5fd1;
+            --text: #0e1c3a;
+            --danger: #ff4747; /* Cor para perigo/vazamento */
+            --safe: #2ecc71; /* Cor para sucesso/reparo */
+        }
+
+        body {
+            height: 100vh;
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            background-image: url('fundo-mar.jpg'); /* Nome do seu arquivo */
+            background-color: #f4f7f8; /* Fundo mais claro para o jogo */
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            flex-direction: column;
+        }
+
+        .game-container {
+            background-color: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            max-width: 800px;
+            width: 100%;
+            padding: 30px;
+            text-align: center;
+        }
+
+        h2 {
+            color: var(--accent-dark);
+            margin-top: 0;
+            font-size: 24px;
+        }
+
+        /* Área de informações do jogo (Pontos, Tempo, Água) */
+        .info-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 10px 15px;
+            background-color: #e9f0f4;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .water-bar-container {
+            flex-grow: 1;
+            margin: 0 20px;
+            height: 25px;
+            background-color: #ccc;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        #waterBar {
+            height: 100%;
+            width: 100%; /* Inicia cheio */
+            background-color: var(--accent);
+            transition: width 0.3s ease-out;
+        }
+
+        /* Área do Jogo - Onde os vazamentos aparecem */
+        .game-area {
+            background-image: url('encanamento-fundo.jpg'); /* Nome do seu arquivo */
+            background-size: cover;
+            background-position: center;
+            background-color: #c4c4c4; /* Simula uma parede */
+            border: 2px solid #a3a3a3;
+            border-radius: 8px;
+            height: 350px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Vazamento */
+        .leak {
+            position: absolute;
+            font-size: 40px;
+            cursor: pointer;
+            animation: pulse 1s infinite alternate; /* Efeito para chamar atenção */
+            user-select: none;
+        }
+
+        .leak:hover {
+            transform: scale(1.1);
+            filter: brightness(1.2);
+        }
+        
+        @keyframes pulse {
+            from { opacity: 0.8; }
+            to { opacity: 1; }
+        }
+
+        /* Mensagens Finais */
+        .message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 700;
+            display: none;
+        }
+
+        .message.win {
+            background-color: rgba(46, 204, 113, 0.2);
+            color: var(--safe);
+        }
+        .message.lose {
+            background-color: rgba(255, 71, 71, 0.2);
+            color: var(--danger);
+        }
+
+        button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s ease;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background: var(--accent-dark);
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <h2>SOS Água: Caça ao Vazamento 🛠️</h2>
+    <p>Sanar todos os vazamentos que aparecerem antes que a água acabe.</p>
+    <p>**30 SEGUNDOS** para salvar o dia!</p>
+
+    <div class="info-bar">
+        <span>💧 Nível da Água:</span>
+        <div class="water-bar-container"><div id="waterBar"></div></div>
+        <span id="scoreText">Pontos: 0</span>
+        <span id="timerText">Tempo: 30s</span>
+    </div>
+
+    <div class="game-area" id="gameArea">
+        </div>
+
+    <div class="message" id="winMessage">Parabéns! Você consertou todos os vazamentos a tempo! Sua pontuação final: <span id="finalScoreWin"></span>.</div>
+    <div class="message" id="loseMessage">A água acabou! O desperdício foi maior que o seu tempo de reação. Sua pontuação final: <span id="finalScoreLose"></span>.</div>
+
+    <button id="startButton">Começar Jogo</button>
+</div>
+
+<script>
+    const gameArea = document.getElementById('gameArea');
+    const startButton = document.getElementById('startButton');
+    const waterBar = document.getElementById('waterBar');
+    const scoreText = document.getElementById('scoreText');
+    const timerText = document.getElementById('timerText');
+    const winMessage = document.getElementById('winMessage');
+    const loseMessage = document.getElementById('loseMessage');
+
+    // Variáveis do Jogo
+    let score = 0;
+    let waterLevel = 100; // Porcentagem
+    let timeLeft = 30; // Segundos
+    let gameInterval;
+    let leakInterval;
+    let isGameRunning = false;
+    const LEAK_DECAY = 6; // Perda de água por segundo (%)
+    const LEAK_REPAIR = 3; // Recarga de água por reparo (%)
+
+    function startGame() {
+        if (isGameRunning) return;
+        isGameRunning = true;
+
+        // Resetar
+        score = 0;
+        waterLevel = 100;
+        timeLeft = 30;
+        gameArea.innerHTML = '';
+        scoreText.textContent = `Pontos: ${score}`;
+        timerText.textContent = `Tempo: ${timeLeft}s`;
+        waterBar.style.width = `${waterLevel}%`;
+        winMessage.style.display = 'none';
+        loseMessage.style.display = 'none';
+        startButton.textContent = 'Reiniciar Jogo';
+
+        // Lógica do Tempo e Água
+        gameInterval = setInterval(updateGame, 1000);
+        
+        // Lógica de Criação de Vazamentos
+        leakInterval = setInterval(createLeak, 1500);
+        // Garante que o jogo fique mais difícil com o tempo
+        setTimeout(() => {
+            clearInterval(leakInterval);
+            leakInterval = setInterval(createLeak, 1000); 
+        }, 10000); // Aumenta a frequência após 30 segundos
+    }
+
+    function updateGame() {
+        // 1. Decaimento da Água
+        waterLevel -= LEAK_DECAY;
+        if (waterLevel < 0) waterLevel = 0;
+        waterBar.style.width = `${waterLevel}%`;
+
+        // 2. Decremento do Tempo
+        timeLeft--;
+        timerText.textContent = `Tempo: ${timeLeft}s`;
+
+        // 3. Verificação de Fim de Jogo
+        if (waterLevel <= 0) {
+            endGame(false); // Perdeu por falta de água
+        } else if (timeLeft <= 0) {
+            endGame(true); // Ganhou por tempo
+        }
+    }
+
+    function createLeak() {
+        const leak = document.createElement('div');
+        leak.className = 'leak';
+        leak.textContent = '💧'; // Ícone de vazamento
+        
+        // Posição Aleatória
+        const areaWidth = gameArea.clientWidth - 50;
+        const areaHeight = gameArea.clientHeight - 50;
+        leak.style.left = `${Math.random() * areaWidth}px`;
+        leak.style.top = `${Math.random() * areaHeight}px`;
+
+        // Evento de Clique (Sanar Vazamento)
+        leak.addEventListener('click', () => {
+            if (!isGameRunning) return;
+
+            // 1. Remove o vazamento
+            leak.remove(); 
+
+            // 2. Aumenta a pontuação
+            score += 10;
+            scoreText.textContent = `Pontos: ${score}`;
+
+            // 3. Recarrega a água
+            waterLevel += LEAK_REPAIR;
+            if (waterLevel > 100) waterLevel = 100;
+            waterBar.style.width = `${waterLevel}%`;
+        });
+
+        gameArea.appendChild(leak);
+
+        // Remove o vazamento automaticamente se não for sanado a tempo
+        setTimeout(() => {
+             if (leak.parentNode === gameArea) {
+                leak.remove();
+             }
+        }, 2000); // Vazamento dura 3 segundos
+    }
+
+    function endGame(isTimeUp) {
+        isGameRunning = false;
+        clearInterval(gameInterval);
+        clearInterval(leakInterval);
+
+        if (isTimeUp) {
+            document.getElementById('finalScoreWin').textContent = score;
+            winMessage.style.display = 'block';
+        } else {
+            document.getElementById('finalScoreLose').textContent = score;
+            loseMessage.style.display = 'block';
+        }
+
+        // Limpa vazamentos remanescentes
+        gameArea.innerHTML = '';
+    }
+
+    // Inicialização
+    startButton.addEventListener('click', startGame);
+
+</script>
+</body>
+</html>

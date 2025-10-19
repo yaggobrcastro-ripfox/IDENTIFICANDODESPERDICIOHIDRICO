@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Simulador de Desperdício Hídrico Residêncial — SEI</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+    :root {
+      --card-bg: rgba(255, 255, 255, 0.92);
+      --accent: #2b7cff;
+      --accent-dark: #1f5fd1;
+      --text: #0e1c3a;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: url('https://cdn.discordapp.com/attachments/1425971702801891328/1427411321623674971/AJfQ9KSyxDhkxlWksEjg4Ux_C4m3iG2_Y5hO107CevwPH1EkVuCYB5MqkldZga4duUKIQ24KisgMPSLC_xAHuHV2hdAPwT_DFZrATGs2tx208Y8S_Khc0tRyOIMODd9J6nQsF1P6HIi7OIrGYyLjgNxriAEOwLpGoUqXOo6bzyptIILOAxtws1024-rj.png?ex=68eec3e3&is=68ed7263&hm=7a98ee4c1086325b808b06c7d70b7fa7180e1312b78d0621c85a85234fc6414e&') no-repeat center center fixed;
+      background-size: cover;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      color: var(--text);
+    }
+
+    .overlay {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      max-width: 720px;
+      width: 100%;
+      padding: 32px;
+      text-align: center;
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 28px;
+      color: var(--accent-dark);
+    }
+
+    p.muted {
+      color: #333;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 14px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      text-align: left;
+    }
+
+    label.small {
+      font-size: 13px;
+      color: #444;
+      font-weight: 600;
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 18px;
+      margin-bottom: 16px; 
+    }
+
+    .emoji {
+      font-size: 28px;
+      margin-right: 6px;
+    }
+
+    input[type=range] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    textarea {
+      display: none; 
+    }
+
+    .result {
+      font-weight: 700;
+      font-size: 22px;
+      color: var(--accent-dark);
+      text-align: center;
+    }
+
+    .equivs {
+      font-size: 14px;
+      color: #1c3a6b;
+      margin-top: 8px;
+      text-align: center;
+    }
+
+    button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background: var(--accent-dark);
+    }
+
+    footer {
+      margin-top: 16px;
+      font-size: 13px;
+      color: #234;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay">
+    <h1>Simulador de Desperdício Hídrico Residêncial 💧</h1>
+    <p class="muted">Descubra o quanto de água é desperdiçado em diferentes situações e reflita sobre o uso consciente desse recurso.</p>
+
+    <section class="card">
+      <div class="controls">
+        <div>
+          <label class="small">Escolha o Tipo de Desperdício (Fluxo Fixo Estimado)</label>
+          <div class="radio-group" id="presetRadios">
+            <label><input type="radio" name="preset" value="tap" checked> <span class="emoji">🚰</span> Torneira Gotejando (média 0.10 L/min)</label>
+            <label><input type="radio" name="preset" value="hose"> <span class="emoji">🌿💧</span> Mangueira Aberta (média 12 L/min)</label>
+            <label><input type="radio" name="preset" value="shower"> <span class="emoji">🚿</span> Chuveiro Aberto (média 9 L/min)</label>
+            <label><input type="radio" name="preset" value="toilet"> <span class="emoji">🚽💧</span> Descarga Uma Vez Acionada (média 6 L/min)</label>
+          </div>
+        </div>
+
+        <div>
+          <label class="small">Tempo (Minutos)</label>
+          <input id="timeRange" type="range" min="1" max="10080" step="1" value="60">
+          <div id="timeLabel" style="text-align:right;">60 Minutos</div>
+          <p class="muted">Você pode simular de 1 minuto até 7 dias (10080 minutos)</p>
+        </div>
+
+        <button id="calcBtn">Calcular Desperdício</button>
+
+        <div>
+          <div class="result" id="litersOut">— L</div>
+          <div class="equivs" id="equivOut"></div>
+        </div>
+
+        <a href="jogo.html" id="gameLink" style="display:none; margin-top: 15px; font-weight: 600; color: var(--accent);">
+            <button style="width: 100%; margin-top: 20px;">Jogar SOS Água e Salvar o Planeta! 🎮</button>
+        </a>
+
+    </div>
+    </section>
+
+    <footer>
+      Este simulador promove a Educação e Conscientização Ambiental (ECA) sobre o uso sustentável da água.
+    </footer>
+  </div>
+
+  <script>
+    const presets = {
+      tap: 0.10, 
+      hose: 12,
+      shower: 9,
+      toilet: 6
+    };
+
+    const timeRange = document.getElementById('timeRange');
+    const timeLabel = document.getElementById('timeLabel');
+    const presetRadios = document.getElementById('presetRadios');
+    const calcBtn = document.getElementById('calcBtn');
+    const litersOut = document.getElementById('litersOut');
+    const equivOut = document.getElementById('equivOut');
+
+    // Função para atualizar o label de tempo
+    timeRange.addEventListener('input', () => {
+      let totalMinutes = Number(timeRange.value);
+      let days = Math.floor(totalMinutes / 1440);
+      let hours = Math.floor((totalMinutes % 1440) / 60);
+      let minutes = totalMinutes % 60;
+      let displayStr = '';
+      
+      if (totalMinutes < 60) {
+        displayStr = totalMinutes + ' Minutos';
+      } else {
+        if(days > 0) displayStr += days + (days === 1 ? ' Dia' : ' Dias') + ' ';
+        if(hours > 0) displayStr += hours + (hours === 1 ? ' Hora' : ' Horas') + ' ';
+        if(minutes > 0 || (days === 0 && hours === 0)) displayStr += minutes + ' Minutos';
+      }
+
+      timeLabel.textContent = displayStr.trim();
+    });
+
+    calcBtn.addEventListener('click', () => {
+      // Pega o valor de fluxo fixo do preset selecionado
+      const v = document.querySelector('input[name=preset]:checked').value;
+      const flow = presets[v] || 0; 
+      
+      const totalMinutes = Number(timeRange.value);
+      const liters = flow * totalMinutes;
+      
+      litersOut.textContent = liters.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + ' L';
+
+      const bottles = Math.round(liters * 2);
+      const baths = (liters / 50).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+      
+      let days = Math.floor(totalMinutes / 1440);
+      let hours = Math.floor((totalMinutes % 1440) / 60);
+      let minutes = totalMinutes % 60;
+      let timeStr = '';
+
+     calcBtn.addEventListener('click', () => {
+    // ... todo o código de cálculo de litros e equivalências ...
+    
+    // TORNA O LINK DO JOGO VISÍVEL APÓS O CÁLCULO
+    document.getElementById('gameLink').style.display = 'block';
+    });
+      
+      // Capitalização na string de tempo para a saída
+      if(days > 0) timeStr += days + (days === 1 ? ' Dia' : ' Dias') + ' ';
+      if(hours > 0) timeStr += hours + (hours === 1 ? ' Hora' : ' Horas') + ' ';
+      
+      if (minutes > 0 || (days === 0 && hours === 0)) {
+          timeStr += minutes + ' Minutos';
+      }
+
+      const equivText = `≈ ${bottles.toLocaleString('pt-BR')} Garrafas de 500mL · ≈ ${baths} Banhos (50 L/Banho)<br>Tempo Simulado: ${timeStr.trim()}`;
+      equivOut.innerHTML = equivText;
+    });
+
+    // Inicialização do tempo
+    timeRange.dispatchEvent(new Event('input'));
+  </script>
+</body>
+</html>
